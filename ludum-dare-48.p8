@@ -4,6 +4,7 @@ __lua__
 
 function _init()
 	physics_start(1/30)
+    collider(64, 96, 8)
 	init_bullets(128)
 	spawn_player()
 end
@@ -17,6 +18,7 @@ end
 
 function _draw()
 	col_draw(colliders[1])
+	col_draw(colliders[2])
 	draw_bullets()
 end
 
@@ -24,7 +26,7 @@ end
 --player
 
 function spawn_player()
-	player=rigidbody(64, 64, 0, 8, 8, 0, 0, 0, nil)
+	player=rigidbody(64, 64, 8, 0, 0, 0.25, nil)
 	player.firerate=0.25
 	player.nextshoot=0
 end
@@ -38,11 +40,15 @@ function update_player()
 			elseif btn(1) then dir = vector(1,0)
 			elseif btn(2) then dir = vector(0,-1)
 			elseif btn(3) then dir = vector(0,1) end
-			local b=bullet_straight(player.pos, vec_mul(dir, vector(32,32)), 7, 0)
+			local b=bullet_straight(vec_add(player.pos, vec_mul(dir, vector(player.radius+2,player.radius+2))), vec_mul(dir, vector(32,32)), 7, 0)
 			player.nextshoot = time() + player.firerate
 			player.vel = vec_add(player.vel, vec_mul(vector(-32,-32), dir))
 		end
 	end
+end
+
+function kill_player()
+	_init()
 end
 
 -->8
@@ -89,6 +95,9 @@ function update_bullets()
 			bullets[i].lifetime = bullets[i].lifetime - phy.dt
 			if bullets[i].move then
 				bullets[i].move(bullets[i])
+				if col_overlap_point(player, bullets[i].pos) then
+					kill_player()
+				end
 			end
 		end
 	end
@@ -121,12 +130,10 @@ function physics_update()
 	end
 end
 
-function rigidbody(x, y, r, w, h, friction, drag, bounce, on_hit)
-	local rb = collider(x, y, r, w, h, false, on_hit)
+function rigidbody(x, y, r, friction, drag, bounce, on_hit)
+	local rb = collider(x, y, r, false, on_hit)
 	rb.acc = vector(0, 0)
 	rb.vel = vector(0, 0)
-	rb.mom = 0
-	rb.tor = 0
     rb.friction = friction
     rb.drag = drag
     rb.bounce = bounce
@@ -134,10 +141,9 @@ function rigidbody(x, y, r, w, h, friction, drag, bounce, on_hit)
 	return rb
 end
 
-function collider(x, y, r, w, h, trg, on_hit, ign)
+function collider(x, y, r, trg, on_hit, ign)
 	local c = transform(x, y, r)
-	c.w = w
-	c.h = h
+	c.radius = r
 	c.trg = trg
 	c.on_hit = on_hit
 	if (not ign) then
@@ -160,9 +166,6 @@ function rb_col_response(rb, col, data)
 		end
 		if (not col.trg) then
 			local norm = col_normal(data.new_col, hit)
-			local loc_hit = inv_tr_point(data.new_col, hit)
-			local loc_hit_norm = inv_tr_vector(data.new_col, norm)
-			local loc_hit_tan =  mul_mat_vec(rot_matrix(0.25), loc_hit_norm)
 			local dv = vec_dot(data.new_vel, norm) * (1 + rb.bounce)
 			local delta_v = vec_mul(vector(-dv,-dv),norm)
 			data.new_vel = vec_add(data.new_vel, delta_v)
@@ -180,11 +183,7 @@ function rb_update(rb)
 	local new_vel = vec_add(rb.vel, vec_mul(new_acc, vector(phy.dt, phy.dt)))
 	local new_pos = vec_add(rb.pos, vec_mul(new_vel, vector(phy.dt, phy.dt)))
 
-	local new_tor = rb.tor - rb.mom * rb.drag
-	local new_mom = rb.mom + new_tor * phy.dt
-	local new_rot = rb.rot + new_mom * phy.dt
-
-	local new_col = collider(new_pos.x, new_pos.y, new_rot, rb.w, rb.h, false, rb.on_hit, true)
+	local new_col = collider(new_pos.x, new_pos.y, rb.radius, false, rb.on_hit, true)
 	
 	local data = {new_col=new_col, new_vel=new_vel, new_pos=new_pos}
 	
@@ -199,133 +198,32 @@ function rb_update(rb)
 
 	rb.acc = vector(0,0)
 	rb.vel = data.new_vel
-	rb.pos = data.new_pos
-	rb.mom = new_mom
-	rb.rot = new_rot % 1
-	
+	rb.pos = data.new_pos	
 end
 
 function col_overlap_point(c, p)
-	local q=tr_point(c, p)
-	local ul=col_loc_ul_corner(c)
-	local br=col_loc_br_corner(c)
-
-	return ul.x <= q.x and q.x <= br.x and br.y <= q.y and q.y <= ul.y
+	local dist = vec_len(vec_sub(c.pos, p))
+    return dist < c.radius
 end
 
 function col_overlap_col(c1, c2)
-	local pts={}
-	if (col_overlap_point(c1, col_ur_corner(c2))) add(pts, col_ur_corner(c2))
-	if (col_overlap_point(c1, col_ul_corner(c2))) add(pts, col_ul_corner(c2))
-	if (col_overlap_point(c1, col_br_corner(c2))) add(pts, col_br_corner(c2))
-	if (col_overlap_point(c1, col_bl_corner(c2))) add(pts, col_bl_corner(c2))
-	if (col_overlap_point(c2, col_ur_corner(c1))) add(pts, col_ur_corner(c1))
-	if (col_overlap_point(c2, col_ul_corner(c1))) add(pts, col_ul_corner(c1))
-	if (col_overlap_point(c2, col_br_corner(c1))) add(pts, col_br_corner(c1))
-	if (col_overlap_point(c2, col_bl_corner(c1))) add(pts, col_bl_corner(c1))
-	if (#pts > 0) then
-		local contact = vector(0,0)
-		for i=1,#pts do
-			contact = vec_add(contact, pts[i])
-		end
-		contact = vec_mul(contact, vector(1/#pts, 1/#pts))
-		return contact
-	end
-	return false
+    local offs=vec_sub(c2.pos, c1.pos)
+    local dist=vec_len(offs)
+    local dir=vec_norm(offs)
+    if dist < c1.radius*2 or dist < c2.radius*2 then
+        return vec_add(c1.pos, vec_mul(dir, vector(c1.radius, c1.radius)))
+    else
+        return false
+    end
 end
 
 function col_normal(c, p)
-	local q=tr_point(c, p)
-	local n
-	local angle = atan2(q.x, q.y)
-	local threshold = 0.125--atan2(c.w/2, c.h/2)
-		if (angle<threshold)  then n = col_left(c)
-	elseif (angle==threshold) then n = vec_add(col_left(c), col_up(c))
-	elseif (angle<threshold*3)  then n = col_up(c)
-	elseif (angle==threshold*3) then n = vec_add(col_right(c), col_up(c))
-	elseif (angle<threshold*5)  then n = col_right(c)
-	elseif (angle==threshold*5) then n = vec_add(col_right(c), col_down(c))
-	elseif (angle<threshold*7)  then n = col_down(c)
-	elseif (angle==threshold*7) then n = vec_add(col_left(c), col_down(c))
-	else                       n = col_left(c)
-	end
-	return vec_norm(n)
+	local offs=vec_sub(p, c.pos)
+    return vec_norm(offs)
 end
 
 function col_draw(c)
-	local ul=col_ul_corner(c)
-	local br=col_br_corner(c)
-	local bl=col_bl_corner(c)
-	local ur=col_ur_corner(c)
-
-	line(ur.x, ur.y, br.x, br.y)
-	line(ur.x, ur.y, ul.x, ul.y)
-	line(br.x, br.y, bl.x, bl.y)
-	line(ul.x, ul.y, bl.x, bl.y)
-end
-
-function col_up(c)
-	return inv_tr_vector(c, col_loc_up(c))
-end
-
-function col_down(c)
-	return inv_tr_vector(c, col_loc_down(c))
-end
-
-function col_left(c)
-	return inv_tr_vector(c, col_loc_left(c))
-end
-
-function col_right(c)
-	return inv_tr_vector(c, col_loc_right(c))
-end
-
-function col_ul_corner(c)
-	return vec_add(c.pos, vec_add(col_up(c), col_left(c)))
-end
-
-function col_ur_corner(c)
-	return vec_add(c.pos, vec_add(col_up(c), col_right(c)))
-end
-
-function col_bl_corner(c)
-	return vec_add(c.pos, vec_add(col_down(c), col_left(c)))
-end
-
-function col_br_corner(c)
-	return vec_add(c.pos, vec_add(col_down(c), col_right(c)))
-end
-
-function col_loc_up(c)
-	return vector(0,c.h*0.5)
-end
-
-function col_loc_down(c)
-	return vector(0,-c.h*0.5)
-end
-
-function col_loc_left(c)
-	return vector(-c.w*0.5,0)
-end
-
-function col_loc_right(c)
-	return vector(c.w*0.5,0)
-end
-
-function col_loc_ul_corner(c)
-	return vec_add(col_loc_up(c), col_loc_left(c))
-end
-
-function col_loc_ur_corner(c)
-	return vec_add(col_loc_up(c), col_loc_right(c))
-end
-
-function col_loc_bl_corner(c)
-	return vec_add(col_loc_down(c), col_loc_left(c))
-end
-
-function col_loc_br_corner(c)
-	return vec_add(col_loc_down(c), col_loc_right(c))
+    circ(c.pos.x, c.pos.y, 7)
 end
 
 -->8
@@ -363,63 +261,16 @@ function vec_norm(v)
 	end
 end
 
-function matrix(c00, c01, c10, c11)
-	return {c00, c01, c10, c11}
-end
-
-function mtx_inv(m)
-	local d=m[1]*m[4]-m[2]*m[3]
-	if (d!=0) then
-		return matrix(d*m[4], -d*m[2], -d*m[3], d*m[1])
-	else
-		return m
-	end
-end
-
-function rot_matrix(a)
-	local c=cos(a)
-	local s=sin(a)
-	return matrix(c, -s, s, c)
-end
-
-function mul_mat_vec(m, v)
-	return vector(m[1]*v.x + m[2]*v.y, m[3]*v.x + m[4]*v.y)
-end
-
-function transform(x, y, rot)
-	return {pos=vector(x, y), rot=rot}
-end
-
-function tr_vector(t, v)
-	return mul_mat_vec(rot_matrix(t.rot), v)
+function transform(x, y)
+	return {pos=vector(x, y)}
 end
 
 function tr_point(t, p)
-	return tr_vector(t, vec_sub(p, t.pos))
-end
-
-function inv_tr_vector(t, v)
-	return mul_mat_vec(mtx_inv(rot_matrix(t.rot)), v)
+	return vec_sub(p, t.pos)
 end
 
 function inv_tr_point(t, p)
-	return vec_add(t.pos, inv_tr_vector(t, vec_sub(p, t.pos)))
-end
-
-function tr_up(t)
-	return tr_vector(t, vector(0,1))
-end
-
-function tr_down(t)
-	return tr_vector(t, vector(0,-1))
-end
-
-function tr_right(t)
-	return tr_vector(t, vector(1,0))
-end
-
-function tr_left(t)
-	return tr_vector(t, vector(-1,0))
+	return vec_add(p, t.pos)
 end
 
 __gfx__
