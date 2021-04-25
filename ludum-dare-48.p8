@@ -4,7 +4,7 @@ __lua__
 
 function _init()
 	physics_start(1/30)
-    rigidbody(64, 96, 8, 0, 0.5, 0.5, nil, 10)
+    rigidbody(60, 96, 8, 0, 0.5, 0.5, nil, 10)
 	init_bullets(128)
 	spawn_player()
 end
@@ -27,7 +27,7 @@ end
 --player
 
 function spawn_player()
-	player=rigidbody(64, 64, 8, 0, 0, 0.25, nil, 10)
+	player=rigidbody(64, 64, 2, 0, 0, 0.4, nil, 10)
 	player.firerate=0.25
 	player.nextshoot=0
 end
@@ -156,7 +156,7 @@ function rigidbody(x, y, r, friction, drag, bounce, on_hit, hp)
 end
 
 function collider(x, y, r, trg, on_hit, ign)
-	local c = transform(x, y, r)
+	local c = transform(x, y)
 	c.radius = r
 	c.trg = trg
 	c.on_hit = on_hit
@@ -217,14 +217,15 @@ end
 
 function col_overlap_point(c, p)
 	local dist = vec_len(vec_sub(c.pos, p))
-    return dist < c.radius
+    return dist <= c.radius
 end
 
 function col_overlap_col(c1, c2)
     local offs=vec_sub(c2.pos, c1.pos)
     local dist=vec_len(offs)
     local dir=vec_norm(offs)
-    if dist < c1.radius*2 or dist < c2.radius*2 then
+	dist -= c1.radius + c2.radius
+    if dist <= 0 then
         return vec_add(c1.pos, vec_mul(dir, vector(c1.radius, c1.radius)))
     else
         return false
@@ -237,7 +238,7 @@ function col_normal(c, p)
 end
 
 function col_draw(c)
-    circ(c.pos.x, c.pos.y, 7)
+    circ(c.pos.x, c.pos.y, c.radius, 7)
 end
 
 -->8
