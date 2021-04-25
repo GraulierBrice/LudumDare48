@@ -4,7 +4,7 @@ __lua__
 
 function _init()
 	physics_start(1/30)
-    collider(64, 96, 8)
+    rigidbody(64, 96, 8, 0, 0.5, 0.5, nil, 10)
 	init_bullets(128)
 	spawn_player()
 end
@@ -17,8 +17,9 @@ function _update()
 end
 
 function _draw()
-	col_draw(colliders[1])
-	col_draw(colliders[2])
+	for i=1,#colliders do
+		col_draw(colliders[i])
+	end
 	draw_bullets()
 end
 
@@ -26,7 +27,7 @@ end
 --player
 
 function spawn_player()
-	player=rigidbody(64, 64, 8, 0, 0, 0.25, nil)
+	player=rigidbody(64, 64, 8, 0, 0, 0.25, nil, 10)
 	player.firerate=0.25
 	player.nextshoot=0
 end
@@ -40,15 +41,23 @@ function update_player()
 			elseif btn(1) then dir = vector(1,0)
 			elseif btn(2) then dir = vector(0,-1)
 			elseif btn(3) then dir = vector(0,1) end
-			local b=bullet_straight(vec_add(player.pos, vec_mul(dir, vector(player.radius+2,player.radius+2))), vec_mul(dir, vector(32,32)), 7, 0)
+			local b=bullet_straight(vec_add(player.pos, vec_mul(dir, vector(player.radius+2,player.radius+2))), vec_mul(dir, vector(32,32)), 7, 0, 10)
 			player.nextshoot = time() + player.firerate
 			player.vel = vec_add(player.vel, vec_mul(vector(-32,-32), dir))
 		end
 	end
 end
 
-function kill_player()
-	_init()
+function bullet_hit(b, rb)
+	if b.flag != rb.flag then
+		b.lifetime=0
+		rb.hp -= b.dmg
+		if rb.hp <= 0 then
+			del(rigidbodies, rb)
+			del(colliders, rb)
+			if rb == player then _init() end
+		end
+	end
 end
 
 -->8
@@ -57,13 +66,13 @@ end
 function init_bullets(n)
 	bullets={}
 	for i=1,n do
-		add(bullets, {pos=vector(0,0), move=nil, color=0, flag=0, lifetime=0})
+		add(bullets, {pos=vector(0,0), move=nil, color=0, flag=0, lifetime=0, dmg=0})
 	end
 	bullets.first=1
 end
 
-function bullet_straight(pos, vel, color, flag)
-	local b = bullet(pos, color, flag)
+function bullet_straight(pos, vel, color, flag, dmg)
+	local b = bullet(pos, color, flag, dmg)
 	b.vel=vector(vel.x, vel.y)
 	b.move=bullet_straight_move
 	return b
@@ -73,11 +82,12 @@ function bullet_straight_move(b)
 	b.pos = vec_add(b.pos, vec_mul(b.vel, vector(phy.dt, phy.dt)))
 end
 
-function bullet(pos, color, flag)
+function bullet(pos, color, flag, dmg)
 	local b = bullets[bullets.first]
 	b.pos=vector(pos.x, pos.y)
 	b.color=color
 	b.flag=flag
+	b.dmg=dmg
 	b.lifetime=5
 	for i=bullets.first+1, #bullets+bullets.first do
 		if i>#bullets then i=i-#bullets end
@@ -95,8 +105,11 @@ function update_bullets()
 			bullets[i].lifetime = bullets[i].lifetime - phy.dt
 			if bullets[i].move then
 				bullets[i].move(bullets[i])
-				if col_overlap_point(player, bullets[i].pos) then
-					kill_player()
+				for j=1,#rigidbodies do
+					if col_overlap_point(rigidbodies[j], bullets[i].pos) then
+						bullet_hit(bullets[i], rigidbodies[j])
+						break
+					end
 				end
 			end
 		end
@@ -130,13 +143,14 @@ function physics_update()
 	end
 end
 
-function rigidbody(x, y, r, friction, drag, bounce, on_hit)
+function rigidbody(x, y, r, friction, drag, bounce, on_hit, hp)
 	local rb = collider(x, y, r, false, on_hit)
 	rb.acc = vector(0, 0)
 	rb.vel = vector(0, 0)
     rb.friction = friction
     rb.drag = drag
     rb.bounce = bounce
+	rb.hp = hp
 	add(rigidbodies, rb)
 	return rb
 end
