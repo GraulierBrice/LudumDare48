@@ -303,13 +303,11 @@ function update_enemies()
 		rb_update(enemies[i])
 	end
 	if #enemies<10 then
-		if rnd()*200>200-(time()/200) then
+		if rnd()<1/(6000-time()) then
 			add(enemies,spawn_spider())
-		end
-		if rnd()*100>100-(time()/50) then
+		elseif rnd()<1/(600-time()) then
 			add(enemies, spawn_bat())
-		end
-		if rnd()*100>100-(time()/50) then
+		elseif rnd()<1/(600-time()) then
 			add(enemies, spawn_fish(0,rnd(128)))
 		end
 	end
