@@ -28,6 +28,7 @@ function _draw()
 	print(player.hp,0,0,7)
 	draw_enemies()
 	draw_player()
+	draw_health()
 	print(time())
 end
 
@@ -45,7 +46,7 @@ end
 --player
 
 function spawn_player()
-	player=rigidbody(64, 64, 2, 0.5, 4, 0.4, function(rb) rb.hp-=2 end , 10000)
+	player=rigidbody(64, 64, 2, 0.5, 4, 0.4, function(rb) rb.hp-=2 end , 1000)
 	player.firerate=0.20
 	player.nextshoot=0
 	player.knockback=0.30
@@ -95,6 +96,26 @@ function draw_player()
 	elseif btn(3) then 	spr(8, player.pos.x-4,player.pos.y-4,1,1,false,true)
 	else spr(7, player.pos.x-4,player.pos.y-4) end
 end
+
+
+
+function draw_health()
+	local ratio = player.hp/1000
+	local width = max(1, 126*ratio)
+	if width > 96 then color(11)
+	elseif width > 64 then color(10)
+	elseif width > 32 then color(9)
+	else color(8) end
+	rect(0,0, 127,5)
+	rectfill(1,1,32, 4, 8)
+	rectfill(33,1,64, 4, 9)
+	rectfill(65,1,96, 4, 10)
+	rectfill(97,1,126, 4, 11)
+	if ratio < 1 then
+		rectfill(width,1, 126, 4, 0)
+	end
+end
+
 
 function bullet_hit(b, rb)
 	if b.flag != rb.flag then
