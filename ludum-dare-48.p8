@@ -3,11 +3,15 @@ version 32
 __lua__
 
 function _init()
+	init_all()
+	draw_splash_screen()
+end
+
+function init_all()
 	cls()
 	physics_start(1/60)
 	init_bullets(256)
 	init_enemies()
-	draw_splash_screen()
 	inverted_controls=false
 	start=false
 	playing=false
@@ -113,13 +117,14 @@ function game_over()
 	print("depth : " .. score, 41, 64, 7)
 	print("game over", 41, 72, 7)
 	print("press ❎ to restart", 26, 92, 7)
-	if btnp(5) then reboot() end
+	print(time(),100,100)
+	if btnp(5) then start=false init_all() end
 end
 -->8
 --player
 
 function spawn_player()
-	player=rigidbody(64, 64, 2, 0.5, 4, 0.4, function(rb) rb.hp-=10-5000/(score+500) end , 1000)
+	player=rigidbody(64, 64, 2, 0.5, 4, 0.4, function(rb) rb.hp-=10-5000/(score+500) end , 0)
 	player.firerate=0.20
 	player.nextshoot=0
 	player.knockback=0.30
