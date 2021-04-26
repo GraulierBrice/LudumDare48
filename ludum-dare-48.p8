@@ -255,7 +255,8 @@ function spawn_spider()
 	local spider= rigidbody(rnd()*120+4,rnd()*120+4, 7, 0.5, 4, 0.4, nil, 300-60000/(time()+200))
 	spider.sprites = {2,3,4,5}
 	spider.flag = 1
-	spider.reshoot = time()
+	spider.size = 0
+	spider.reshoot = time()+3
 	spider.update = update_spider
 	spider.draw = draw_spider
 	return spider
@@ -269,13 +270,22 @@ function update_spider(spider)
 		end
 	spider.reshoot = time() + 3
 	end
+	spider.size += 0.1
 end
 
 function draw_spider(spider)
-	spr(spider.sprites[flr(rnd(0.51)*2+1)],spider.pos.x-8,spider.pos.y-8)
-	spr(spider.sprites[flr(rnd(0.51)*2+1)],spider.pos.x,spider.pos.y-8, 1, 1, true)
-	spr(spider.sprites[flr(rnd(0.51)*2+3)],spider.pos.x-8,spider.pos.y)
-	spr(spider.sprites[flr(rnd(0.51)*2+3)],spider.pos.x,spider.pos.y, 1, 1, true)
+	if spider.size < 8 then 
+		local s = flr(spider.size)
+		sspr(spider.sprites[1]*8,0,8,8,spider.pos.x-s,spider.pos.y-s,s,s)
+		sspr(spider.sprites[1]*8,0,8,8,spider.pos.x,spider.pos.y-s,s,s,true)
+		sspr(spider.sprites[3]*8,0,8,8,spider.pos.x-s,spider.pos.y,s,s)
+		sspr(spider.sprites[3]*8,0,8,8,spider.pos.x,spider.pos.y,s,s,true)
+	else
+		spr(spider.sprites[flr(rnd(0.51)*2+1)],spider.pos.x-8,spider.pos.y-8)
+		spr(spider.sprites[flr(rnd(0.51)*2+1)],spider.pos.x,spider.pos.y-8, 1, 1, true)
+		spr(spider.sprites[flr(rnd(0.51)*2+3)],spider.pos.x-8,spider.pos.y)
+		spr(spider.sprites[flr(rnd(0.51)*2+3)],spider.pos.x,spider.pos.y, 1, 1, true)
+	end
 end
 
 function spawn_fish(x,y)
