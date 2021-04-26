@@ -100,7 +100,11 @@ function draw_menu()
 		txt = "invert"
 	end
 	print("controls : ⬅️ " .. txt .. " ➡️", 16, 72, 7)
+	print("⬆️",17,40)
+	print("⬅️⬇️➡️",9,47)
+	print("move  ❎ switch weapon",35,43)
 	print("press ❎ to start", 30, 92, (time()%2>1) and 12 or 7)
+
 end
 
 function draw_game()
