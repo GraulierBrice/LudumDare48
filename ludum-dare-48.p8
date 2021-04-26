@@ -1,27 +1,35 @@
 pico-8 cartridge // http://www.pico-8.com
-version 29
+version 32
 __lua__
 
 function _init()
 	physics_start(1/30)
     rigidbody(60, 96, 8, 0, 0.5, 0.5, nil, 10)
 	init_bullets(256)
+	add(enemies, spawn_bat())
 	spawn_player()
 end
 
 function _update()
     cls()
 	update_player()
+	update_enemies()
 	update_bullets()
 	physics_update()
 end
 
 function _draw()
+	map(0,0)
 	for i=1,#colliders do
 		col_draw(colliders[i])
 	end
 	draw_bullets()
 	print(player.hp,0,0,7)
+	light()
+end
+
+function light()
+
 end
 
 -->8
@@ -65,7 +73,7 @@ function update_player()
 			player.vel = vec_add(player.vel, dir)
 		end
 	end
-	if time()>player.switch and btn(5) then
+	if btnp(5) then
 		player.firerate=1-player.firerate
 		player.knockback=1-player.knockback
 		player.weapon = (player.weapon==player.weapons.machine_gun) and player.weapons.shot_gun or player.weapons.machine_gun
@@ -80,7 +88,7 @@ function bullet_hit(b, rb)
 		if rb.hp <= 0 then
 			del(rigidbodies, rb)
 			del(colliders, rb)
-			if rb == player then _init() end
+			if rb == player then _init() else del(enemies, rb) end
 		end
 	end
 end
@@ -161,6 +169,32 @@ function shot_gun(dir)
 		bullet_straight(vec_add(player.pos, vec_mul(dir, vector(player.radius,player.radius))), vec_mul(vec_norm(vec_add(dir, vector(((i-n/2)/n)*dir.y,((i-n/2)/n)*dir.x))),bspeed), 7, 0, 12)
 	end
 end
+
+-->8
+-- enemies
+
+enemies = {}
+
+function spawn_bat()
+	local bat= rigidbody(100, 100, 2, 0.5, 4, 0.4, nil, 20)
+	bat.flag = 1
+	bat.reshoot = time()
+	bat.update = function() 
+		if(time() > bat.reshoot) then 
+			bullet_straight(bat.pos, vec_mul(vec_norm(vec_sub(player.pos, bat.pos)), vector(32,32)), 2, 1, 1) 
+			bat.reshoot = time()+1 
+		end 
+	end
+	return bat
+end
+
+function update_enemies()
+	for i=1,#enemies do
+		enemies[i].update()
+		rb_update(enemies[i])
+	end
+end
+
 
 -->8
 -- physics
@@ -247,10 +281,15 @@ function rb_update(rb)
 			end
 		end
 	end
-
 	rb.acc = vector(0,0)
 	rb.vel = data.new_vel
-	rb.pos = data.new_pos	
+	rb.pos = data.new_pos
+
+	if rb.pos.x > 128 - rb.radius then
+		rb.vel.x = abs(rb.vel.x) * -rb.bounce * (rb.pos.x - 128 + rb.radius)
+	elseif rb.pos.x < 0 + rb.radius then
+		rb.vel.x = abs(rb.vel.x) * rb.bounce * -(rb.pos.x-rb.radius)
+	end
 end
 
 function col_overlap_point(c, p)
@@ -325,11 +364,3 @@ end
 function inv_tr_point(t, p)
 	return vec_add(p, t.pos)
 end
-
-__gfx__
-00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-00700700000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-00077000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-00077000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-00700700000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
