@@ -19,7 +19,7 @@ function _update()
 end
 
 function _draw()
-	local y=time()*10
+	local y=time()
 	draw_environment(y)
 	for i=1,#colliders do
 		col_draw(colliders[i])
@@ -27,13 +27,14 @@ function _draw()
 	draw_bullets()
 	print(player.hp,0,0,7)
 	draw_enemies()
+	print(time())
 end
 
 function draw_environment(z)
 	local s = 16+z/10
 	for i=0,15 do
 		for j=0,15 do
-			local a = vec_len(vector(i-7.5,j-7.5))/8
+			local a = vec_len(vector(i-7.5,j-7.5))/50
 			spr(min(33, max(16, s+1-a)), i*8,j*8)
 		end
 	end
@@ -161,7 +162,7 @@ end
 function draw_bullets()
 	for i=1,#bullets do
 		if bullets[i].lifetime>0 then
-			pset(bullets[i].pos.x, bullets[i].pos.y, bullets[i].color)
+			circ(bullets[i].pos.x, bullets[i].pos.y, 1, bullets[i].color)
 		end
 	end
 end
@@ -193,18 +194,28 @@ function spawn_bat()
 	bat.flag = 1
 	bat.frame = 0
 	bat.reshoot = time()
-	bat.update = function()
-		bat.vel.y = 10*(player.pos.y - bat.pos.y) / abs(bat.pos.y - player.pos.y)
-		if(time() > bat.reshoot) then 
-			bullet_straight(bat.pos, vec_mul(vec_norm(vec_sub(player.pos, bat.pos)), vector(32,32)), 8, 1, 1) 
-			bat.reshoot = time()+2
-		end 
-		bat.frame = (bat.frame + 1) % 6
-	end
-	bat.draw = function()
-		spr(bat.sprites[bat.frame+1], bat.pos.x-3, bat.pos.y-4)
-	end
+	bat.update = update_bat
+	bat.draw = draw_bat
 	return bat
+end
+
+function update_bat(bat)
+	bat.vel.y = 10*(player.pos.y - bat.pos.y) / abs(bat.pos.y - player.pos.y)
+	if(time() > bat.reshoot) then 
+		if(time() > bat.reshoot) then 
+	if(time() > bat.reshoot) then 
+		bullet_straight(bat.pos, vec_mul(vec_norm(vec_sub(player.pos, bat.pos)), vector(32,32)), 8, 1, 1) 
+			bullet_straight(bat.pos, vec_mul(vec_norm(vec_sub(player.pos, bat.pos)), vector(32,32)), 8, 1, 1) 
+		bullet_straight(bat.pos, vec_mul(vec_norm(vec_sub(player.pos, bat.pos)), vector(32,32)), 8, 1, 1) 
+		bat.reshoot = time()+2
+	end 
+		end 
+	end 
+	bat.frame = (bat.frame + 1) % 6
+end
+
+function draw_bat(bat)
+	spr(bat.sprites[bat.frame+1], bat.pos.x-3, bat.pos.y-4)
 end
 
 function spawn_spider()
@@ -212,35 +223,38 @@ function spawn_spider()
 	spider.sprites = {2,3,4,5}
 	spider.flag = 1
 	spider.reshoot = time()
-	spider.update = function()
-		if(time() > spider.reshoot) then
-		local n = 24
-			for i=1,n do
-				bullet_straight(spider.pos, vec_mul(vector(cos(i/n),sin(i/n)),vector(32,32)), 8, 1, 1)
-			end
-		spider.reshoot = time() + 5
-		end
-	end
-	spider.draw = function ()
-		spr(spider.sprites[flr(rnd(0.51)*2+1)],spider.pos.x-8,spider.pos.y-8)
-		spr(spider.sprites[flr(rnd(0.51)*2+1)],spider.pos.x,spider.pos.y-8, 1, 1, true)
-		spr(spider.sprites[flr(rnd(0.51)*2+3)],spider.pos.x-8,spider.pos.y)
-		spr(spider.sprites[flr(rnd(0.51)*2+3)],spider.pos.x,spider.pos.y, 1, 1, true)
-	end
+	spider.update = update_spider
+	spider.draw = draw_spider
 	return spider
 end
 
+function update_spider(spider)
+	if(time() > spider.reshoot) then
+	local n = 24
+		for i=1,n do
+			bullet_straight(spider.pos, vec_mul(vector(cos(i/n),sin(i/n)),vector(32,32)), 8, 1, 1)
+		end
+	spider.reshoot = time() + 5
+	end
+end
+
+function draw_spider(spider)
+	spr(spider.sprites[flr(rnd(0.51)*2+1)],spider.pos.x-8,spider.pos.y-8)
+	spr(spider.sprites[flr(rnd(0.51)*2+1)],spider.pos.x,spider.pos.y-8, 1, 1, true)
+	spr(spider.sprites[flr(rnd(0.51)*2+3)],spider.pos.x-8,spider.pos.y)
+	spr(spider.sprites[flr(rnd(0.51)*2+3)],spider.pos.x,spider.pos.y, 1, 1, true)
+end
 
 function update_enemies()
 	for i=1,#enemies do
-		enemies[i].update()
+		enemies[i].update(enemies[i])
 		rb_update(enemies[i])
 	end
 end
 
 function draw_enemies()
 	for e in all(enemies) do
-		e.draw()
+		e.draw(e)
 	end
 end
 
