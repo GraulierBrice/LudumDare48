@@ -6,7 +6,7 @@ function _init()
 	physics_start(1/30)
     --rigidbody(60, 96, 8, 0, 0.5, 0.5, nil, 10)
 	init_bullets(256)
-	add(enemies, spawn_spider())
+	add(enemies, spawn_fish(10,10))
 	spawn_player()
 end
 
@@ -44,7 +44,7 @@ end
 --player
 
 function spawn_player()
-	player=rigidbody(64, 64, 2, 0.5, 4, 0.4, nil, 10000)
+	player=rigidbody(64, 64, 2, 0.5, 4, 0.4, function(rb) rb.hp-=2 end , 10000)
 	player.firerate=0.20
 	player.nextshoot=0
 	player.knockback=0.30
@@ -54,12 +54,12 @@ function spawn_player()
 	player.weapons={
 		shot_gun={
 			func=shot_gun,
-			knockback=-128,
+			knockback=-96,
 			firerate=0.25
 		},
 		machine_gun={
 			func=machine_gun,
-			knockback=-32,
+			knockback=-16,
 			firerate=0.05
 		}
 	}
@@ -189,7 +189,7 @@ end
 enemies = {}
 
 function spawn_bat()
-	local bat= rigidbody(rnd()*128, 128, 3, 0.5, 4, 0.4, nil, 100)
+	local bat= rigidbody(rnd()*128, 128, 3, 0.5, 4, 0.4, nil, 10)
 	bat.sprites = {0,0,0,1,1,1}
 	bat.flag = 1
 	bat.frame = 0
@@ -244,6 +244,25 @@ function draw_spider(spider)
 	spr(spider.sprites[flr(rnd(0.51)*2+3)],spider.pos.x-8,spider.pos.y)
 	spr(spider.sprites[flr(rnd(0.51)*2+3)],spider.pos.x,spider.pos.y, 1, 1, true)
 end
+
+function spawn_fish(x,y)
+	local fish = rigidbody(x,y,3, 0.5, 4, 0.4, nil, 10)
+	fish.sprites={6,6,6}
+	fish.flag = 1
+	fish.frame = 0
+	fish.update = update_fish
+	fish.draw = draw_fish
+	return fish
+end
+
+function update_fish(fish)
+	fish.vel = vec_mul(vec_norm(vec_sub(player.pos, fish.pos)),vector(10,10))
+end
+
+function draw_fish(fish)
+	spr(fish.sprites[fish.frame+1], fish.pos.x-3, fish.pos.y-4)
+end
+
 
 function update_enemies()
 	for i=1,#enemies do
