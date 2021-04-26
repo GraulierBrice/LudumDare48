@@ -239,8 +239,8 @@ function update_bat(bat)
 	if(time() > bat.reshoot) then 
 		if(time() > bat.reshoot) then 
 	if(time() > bat.reshoot) then 
-		bullet_straight(bat.pos, vec_mul(vec_norm(vec_sub(player.pos, bat.pos)), vector(32,32)), 8, 1, 10-500/(time()+50))
-		bat.reshoot = time()+2
+		bullet_straight(bat.pos, vec_mul(vec_norm(vec_sub(player.pos, bat.pos)), vector(64,64)), 8, 1, 30-1500/(time()+50))
+		bat.reshoot = time()+1
 	end 
 		end 
 	end 
@@ -265,9 +265,9 @@ function update_spider(spider)
 	if(time() > spider.reshoot) then
 	local n = 24
 		for i=1,n do
-			bullet_straight(spider.pos, vec_mul(vector(cos(i/n),sin(i/n)),vector(32,32)), 8, 1, 30-1500/(time()+50))
+			bullet_straight(spider.pos, vec_mul(vector(cos(i/n),sin(i/n)),vector(64,64)), 8, 1, 50-2500/(time()+50))
 		end
-	spider.reshoot = time() + 5
+	spider.reshoot = time() + 3
 	end
 end
 
@@ -289,7 +289,7 @@ function spawn_fish(x,y)
 end
 
 function update_fish(fish)
-	fish.vel = vec_mul(vec_norm(vec_sub(player.pos, fish.pos)),vector(10,10))
+	fish.vel = vec_mul(vec_norm(vec_sub(player.pos, fish.pos)),vector(16,16))
 end
 
 function draw_fish(fish)
@@ -303,11 +303,11 @@ function update_enemies()
 		rb_update(enemies[i])
 	end
 	if #enemies<10 then
-		if rnd()<1/(6000-time()) then
+		if rnd()<1/(1000-time()) then
 			add(enemies,spawn_spider())
-		elseif rnd()<1/(600-time()) then
+		elseif rnd()<1/(300-time()) then
 			add(enemies, spawn_bat())
-		elseif rnd()<1/(600-time()) then
+		elseif rnd()<1/(300-time()) then
 			add(enemies, spawn_fish(0,rnd(128)))
 		end
 	end
