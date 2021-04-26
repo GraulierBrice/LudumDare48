@@ -6,7 +6,6 @@ function _init()
 	physics_start(1/60)
     --rigidbody(60, 96, 8, 0, 0.5, 0.5, nil, 10)
 	init_bullets(256)
-	add(enemies, spawn_bat(10,10))
 	spawn_player()
 end
 
@@ -25,11 +24,9 @@ function _draw()
 		--col_draw(colliders[i])
 	end
 	draw_bullets()
-	print(player.hp,0,0,7)
 	draw_enemies()
 	draw_player()
-	draw_health()
-	print(time())
+	draw_ui()
 end
 
 function draw_environment(z)
@@ -46,7 +43,7 @@ end
 --player
 
 function spawn_player()
-	player=rigidbody(64, 64, 2, 0.5, 4, 0.4, function(rb) rb.hp-=2 end , 1000)
+	player=rigidbody(64, 64, 2, 0.5, 4, 0.4, function(rb) rb.hp-=10-5000/(time()+500) end , 1000)
 	player.firerate=0.20
 	player.nextshoot=0
 	player.knockback=0.30
@@ -106,7 +103,7 @@ end
 
 
 
-function draw_health()
+function draw_ui()
 	local ratio = player.hp/1000
 	local width = max(1, 126*ratio)
 	if width > 96 then color(11)
@@ -121,6 +118,11 @@ function draw_health()
 	if ratio < 1 then
 		rectfill(width,1, 126, 4, 0)
 	end
+	rect(0,6,30,16,5)
+	rectfill(1,7,29,15,4)
+	spr(player.weapon.func == machine_gun and 12 or 11,1,7)
+	color(7)
+	print(flr(time()).."m",10,9)
 end
 
 
@@ -205,8 +207,8 @@ end
 
 function machine_gun(dir)
 	local bspeed=vector(64,64)
-	bullet_straight(vec_add(player.pos, vector(player.radius*2*dir.y,player.radius*2*dir.x)), vec_mul(dir, bspeed), 7, 0, 3)
-	bullet_straight(vec_add(player.pos, vector(-player.radius*2*dir.y,-player.radius*2*dir.x)), vec_mul(dir, bspeed), 7, 0, 3)
+	bullet_straight(vec_add(player.pos, vector(player.radius*2*dir.y,player.radius*2*dir.x)), vec_mul(dir, bspeed), 7, 0, 30)
+	bullet_straight(vec_add(player.pos, vector(-player.radius*2*dir.y,-player.radius*2*dir.x)), vec_mul(dir, bspeed), 7, 0, 30)
 end
 
 function shot_gun(dir)
@@ -215,7 +217,7 @@ function shot_gun(dir)
 	for i=1,n do
 		local s = (((rnd()-0.5) * 0.25) + 1) * bspeed
 		s = vector(s,s)
-		bullet_straight(vec_add(player.pos, vec_mul(dir, vector(player.radius,player.radius))), vec_mul(vec_norm(vec_add(dir, vector(((i-n/2)/n)*dir.y,((i-n/2)/n)*dir.x))), s), 7, 0, 8)
+		bullet_straight(vec_add(player.pos, vec_mul(dir, vector(player.radius,player.radius))), vec_mul(vec_norm(vec_add(dir, vector(((i-n/2)/n)*dir.y,((i-n/2)/n)*dir.x))), s), 7, 0, 80)
 	end
 end
 
@@ -225,7 +227,7 @@ end
 enemies = {}
 
 function spawn_bat()
-	local bat= rigidbody(rnd()*128, 128, 3, 0.5, 4, 0.4, nil, 10)
+	local bat= rigidbody(rnd()*120+4, 128, 3, 0.5, 4, 0.4, nil, 100-60000/(time()+600))
 	bat.sprites = {0,0,0,0,0,1,1,1,1,1}
 	bat.flag = 1
 	bat.frame = 0
@@ -240,9 +242,7 @@ function update_bat(bat)
 	if(time() > bat.reshoot) then 
 		if(time() > bat.reshoot) then 
 	if(time() > bat.reshoot) then 
-		bullet_straight(bat.pos, vec_mul(vec_norm(vec_sub(player.pos, bat.pos)), vector(32,32)), 8, 1, 1) 
-			bullet_straight(bat.pos, vec_mul(vec_norm(vec_sub(player.pos, bat.pos)), vector(32,32)), 8, 1, 1) 
-		bullet_straight(bat.pos, vec_mul(vec_norm(vec_sub(player.pos, bat.pos)), vector(32,32)), 8, 1, 1) 
+		bullet_straight(bat.pos, vec_mul(vec_norm(vec_sub(player.pos, bat.pos)), vector(32,32)), 8, 1, 10-500/(time()+50))
 		bat.reshoot = time()+2
 	end 
 		end 
@@ -255,7 +255,7 @@ function draw_bat(bat)
 end
 
 function spawn_spider()
-	local spider= rigidbody(30,30, 7, 0.5, 4, 0.4, nil, 30)
+	local spider= rigidbody(rnd()*120+4,rnd()*120+4, 7, 0.5, 4, 0.4, nil, 300-60000/(time()+200))
 	spider.sprites = {2,3,4,5}
 	spider.flag = 1
 	spider.reshoot = time()
@@ -268,7 +268,7 @@ function update_spider(spider)
 	if(time() > spider.reshoot) then
 	local n = 24
 		for i=1,n do
-			bullet_straight(spider.pos, vec_mul(vector(cos(i/n),sin(i/n)),vector(32,32)), 8, 1, 1)
+			bullet_straight(spider.pos, vec_mul(vector(cos(i/n),sin(i/n)),vector(32,32)), 8, 1, 30-1500/(time()+50))
 		end
 	spider.reshoot = time() + 5
 	end
@@ -282,7 +282,7 @@ function draw_spider(spider)
 end
 
 function spawn_fish(x,y)
-	local fish = rigidbody(x,y,3, 0.5, 4, 0.4, nil, 10)
+	local fish = rigidbody(x,y,3, 0.5, 4, 0.4, nil, 100-60000/(time()+600))
 	fish.sprites={6,6,6}
 	fish.flag = 1
 	fish.frame = 0
@@ -304,6 +304,17 @@ function update_enemies()
 	for i=1,#enemies do
 		enemies[i].update(enemies[i])
 		rb_update(enemies[i])
+	end
+	if #enemies<10 then
+		if rnd()*200>200-(time()/200) then
+			add(enemies,spawn_spider())
+		end
+		if rnd()*100>100-(time()/50) then
+			add(enemies, spawn_bat())
+		end
+		if rnd()*100>100-(time()/50) then
+			add(enemies, spawn_fish(0,rnd(128)))
+		end
 	end
 end
 
@@ -497,7 +508,7 @@ __gfx__
 06060060060060609090000000900000099999090099990933333333a56565a7a56565aa5a565a6a5a565a6a0070000070000000000000000000000000000000
 60060600060600069090000000900000990990990909909933333330aa5a5aa0aa5a5aa75aa5aa6a5aa5aa6a0000700700070000000000000000000000000000
 060660606000606090090099900900999000999990009999303333000aaaaa500aaaaa5705aaaa0005aaaa000700000000000000000000000000000000000000
-060060660606006009009998999099989000000009900000000000000055550000555500000aaa00077aa7700000000007000000000000000000000000000000
+06006066060600600900999899909998900000000990000000000000005555000055550000077000077aa7700000000007000000000000000000000000000000
 ccccccccccccccccdcccdcccdcdcdcdcdddcdddcdddcdddcdddddddddddddddd1ddd1ddd1d1d1d1d111d111d111d111d11111111111111110111011101010101
 cccccccccccdcccdcdcdcdcdcdcdcdcdcdcdcdcdddddddddddddddddddd1ddd1d1d1d1d1d1d1d1d1d1d1d1d11111111111111111111011101010101010101010
 ccccccccccccccccccdcccdcdcdcdcdcdcdddcdddcdddcdddddddddddddddddddd1ddd1d1d1d1d1d1d111d111d111d1111111111111111111101110101010101
