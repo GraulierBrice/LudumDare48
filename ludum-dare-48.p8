@@ -396,16 +396,12 @@ function rb_update(rb)
 	rb.vel = data.new_vel
 	rb.pos = data.new_pos
 
-	if rb.pos.x > 128 - rb.radius then
-		rb.vel.x = abs(rb.vel.x) * -rb.bounce * (rb.pos.x-128 + rb.radius)
-	elseif rb.pos.x < 0 + rb.radius then
-		rb.vel.x = abs(rb.vel.x) * rb.bounce * -(rb.pos.x-rb.radius)
+	if (rb.pos.x > 127 - rb.radius) and (rb.vel.x > 0) or (rb.pos.x < rb.radius) and (rb.vel.x < 0) then
+		rb.vel.x *= -rb.bounce
 	end
 
-	if rb.pos.y > 128 - rb.radius then
-		rb.vel.y = abs(rb.vel.y) * -rb.bounce * (rb.pos.y-128 + rb.radius)
-	elseif rb.pos.y < 0 + rb.radius then
-		rb.vel.y = abs(rb.vel.y) * rb.bounce * -(rb.pos.y-rb.radius)
+	if (rb.pos.y > 127 - rb.radius) and (rb.vel.y > 0) or (rb.pos.y < 8 + rb.radius) and (rb.vel.y < 0) then
+		rb.vel.y *= -rb.bounce
 	end
 end
 
