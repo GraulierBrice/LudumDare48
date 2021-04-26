@@ -3,27 +3,60 @@ version 32
 __lua__
 
 function _init()
+	cls()
 	physics_start(1/60)
-    --rigidbody(60, 96, 8, 0, 0.5, 0.5, nil, 10)
 	init_bullets(256)
+	init_enemies()
+	draw_splash_screen()
+	inverted_controls=false
+	start=false
+	playing=false
+	score=0
+end
+
+function init_game()
 	spawn_player()
 end
 
 function _update60()
     cls()
-	update_player()
-	update_enemies()
-	update_bullets()
-	physics_update()
+	if not start then
+		update_menu()
+	else
+		update_game()
+	end
+end
+
+function update_menu()
+	if btnp(0) or btnp(1) then
+		inverted_controls = not inverted_controls
+	end
+	if btnp(5) then
+		start=true
+		start_time=time()
+		playing=true
+		init_game()
+	end
+end
+
+function update_game()
+	if player.hp > 0 then
+		score = flr(time()-start_time)
+		update_player()
+		update_enemies()
+		update_bullets()
+		physics_update()
+	else
+		game_over()
+	end
 end
 
 function _draw()
-	local y=time()
-	draw_environment(y)
-	draw_bullets()
-	draw_enemies()
-	draw_player()
-	draw_ui()
+	if not start then
+		draw_menu()
+	elseif player.hp > 0 then
+		draw_game()
+	end
 end
 
 function draw_environment(z)
@@ -36,17 +69,62 @@ function draw_environment(z)
 	end
 end
 
+function draw_splash_screen()
+	cls()
+	local t0=time()
+	local t1=t0+4
+	while time() < t1 do
+		local z = 300-(time()-t0)*75
+		local s = 16+z/10
+		for i=0,15 do
+			for j=0,15 do
+				local a = vec_len(vector(i-7.5,j-7.5))/4
+				spr(min(33, max(16, s+1-a)), i*8,j*8)
+			end
+		end
+		spr(7+(time()%2), 60,60, 1,1,true)
+		local t2 = time()+1/30
+		while time()<t2 do end
+	end
+end
+
+function draw_menu()
+	draw_environment(0)
+	spr(7+(time()%2), 60,60, 1,1,true)
+	local txt = "normal"
+	if inverted_controls then
+		txt = "invert"
+	end
+	print("controls : ⬅️ " .. txt .. " ➡️", 16, 72, 7)
+	print("press ❎ to start", 30, 92, (time()%2>1) and 12 or 7)
+end
+
+function draw_game()
+	local z=time()-start_time
+	draw_environment(z)
+	draw_bullets()
+	draw_enemies()
+	draw_player()
+	draw_ui()
+end
+
+function game_over()
+	cls()
+	print("depth : " .. score, 41, 64, 7)
+	print("game over", 41, 72, 7)
+	print("press ❎ to restart", 26, 92, 7)
+	if btnp(5) then reboot() end
+end
 -->8
 --player
 
 function spawn_player()
-	player=rigidbody(64, 64, 2, 0.5, 4, 0.4, function(rb) rb.hp-=10-5000/(time()+500) end , 1000)
+	player=rigidbody(64, 64, 2, 0.5, 4, 0.4, function(rb) rb.hp-=10-5000/(score+500) end , 1000)
 	player.firerate=0.20
 	player.nextshoot=0
 	player.knockback=0.30
 	player.flag=0
 	player.shoot=machine_gun
-	player.switch=2
 	player.weapons={
 		shot_gun={
 			func=shot_gun,
@@ -66,10 +144,14 @@ function update_player()
 	if time()>player.nextshoot then
 		if btn(0) or btn(1) or btn(2) or btn(3) then
 			local dir = vector(0,0)
-			if btn(0) 	  then dir = vec_add(dir, vector(-1,0))
-			elseif btn(1) then dir = vec_add(dir, vector(1,0))
-			elseif btn(2) then dir = vec_add(dir, vector(0,-1))
-			elseif btn(3) then dir = vec_add(dir, vector(0,1)) end
+			local left = btn(0) and not inverted_controls or btn(1) and inverted_controls
+			local right = btn(1) and not inverted_controls or btn(0) and inverted_controls
+			local up = btn(2) and not inverted_controls or btn(3) and inverted_controls
+			local down = btn(3) and not inverted_controls or btn(2) and inverted_controls
+			if left 	  then dir = vec_add(dir, vector(-1,0))
+			elseif right then dir = vec_add(dir, vector(1,0))
+			elseif up then dir = vec_add(dir, vector(0,-1))
+			elseif down then dir = vec_add(dir, vector(0,1)) end
 			player.weapon.func(dir)
 			player.nextshoot = time() + player.weapon.firerate
 			dir = vec_mul(dir, vector(player.weapon.knockback, player.weapon.knockback))
@@ -80,7 +162,6 @@ function update_player()
 		player.firerate=1-player.firerate
 		player.knockback=1-player.knockback
 		player.weapon = (player.weapon==player.weapons.machine_gun) and player.weapons.shot_gun or player.weapons.machine_gun
-		player.switch = time() + 1
 	end
 end
 
@@ -119,8 +200,9 @@ function draw_ui()
 	rectfill(1,7,29,15,4)
 	spr(player.weapon.func == machine_gun and 12 or 11,1,7)
 	color(7)
-	print(flr(time()).."m",10,9)
+	print(score.."m",10,9)
 end
+
 
 
 function bullet_hit(b, rb)
@@ -130,7 +212,7 @@ function bullet_hit(b, rb)
 		if rb.hp <= 0 then
 			del(rigidbodies, rb)
 			del(colliders, rb)
-			if rb == player then _init() else del(enemies, rb) end
+			if rb != player then del(enemies, rb) end
 		end
 	end
 end
@@ -221,10 +303,12 @@ end
 -->8
 -- enemies
 
-enemies = {}
+function init_enemies()
+	enemies = {}
+end
 
 function spawn_bat()
-	local bat= rigidbody(rnd()*120+4, 128, 3, 0.5, 4, 0.4, nil, 100-60000/(time()+600))
+	local bat= rigidbody(rnd()*120+4, 128, 3, 0.5, 4, 0.4, nil, 100-60000/(score+600))
 	bat.sprites = {0,0,0,0,0,1,1,1,1,1}
 	bat.flag = 1
 	bat.frame = 0
@@ -239,7 +323,7 @@ function update_bat(bat)
 	if(time() > bat.reshoot) then 
 		if(time() > bat.reshoot) then 
 	if(time() > bat.reshoot) then 
-		bullet_straight(bat.pos, vec_mul(vec_norm(vec_sub(player.pos, bat.pos)), vector(64,64)), 8, 1, 30-1500/(time()+50))
+		bullet_straight(bat.pos, vec_mul(vec_norm(vec_sub(player.pos, bat.pos)), vector(64,64)), 8, 1, 30-1500/(score+50))
 		bat.reshoot = time()+1
 	end 
 		end 
@@ -265,7 +349,7 @@ function update_spider(spider)
 	if(time() > spider.reshoot) then
 	local n = 24
 		for i=1,n do
-			bullet_straight(spider.pos, vec_mul(vector(cos(i/n),sin(i/n)),vector(64,64)), 8, 1, 50-2500/(time()+50))
+			bullet_straight(spider.pos, vec_mul(vector(cos(i/n),sin(i/n)),vector(64,64)), 8, 1, 50-2500/(score+50))
 		end
 	spider.reshoot = time() + 3
 	end
@@ -279,7 +363,7 @@ function draw_spider(spider)
 end
 
 function spawn_fish(x,y)
-	local fish = rigidbody(x,y,3, 0.5, 4, 0.4, nil, 100-60000/(time()+600))
+	local fish = rigidbody(x,y,3, 0.5, 4, 0.4, nil, 100-60000/(score+600))
 	fish.sprites={6,6,6}
 	fish.flag = 1
 	fish.frame = 0
@@ -300,14 +384,13 @@ end
 function update_enemies()
 	for i=1,#enemies do
 		enemies[i].update(enemies[i])
-		rb_update(enemies[i])
 	end
 	if #enemies<10 then
-		if rnd()<1/(1000-time()) then
+		if rnd()<1/(1000-score) then
 			add(enemies,spawn_spider())
-		elseif rnd()<1/(300-time()) then
+		elseif rnd()<1/(300-score) then
 			add(enemies, spawn_bat())
-		elseif rnd()<1/(300-time()) then
+		elseif rnd()<1/(300-score) then
 			add(enemies, spawn_fish(0,rnd(128)))
 		end
 	end
