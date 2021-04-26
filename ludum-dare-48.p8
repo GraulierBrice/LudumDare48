@@ -4,9 +4,9 @@ __lua__
 
 function _init()
 	physics_start(1/30)
-    rigidbody(60, 96, 8, 0, 0.5, 0.5, nil, 10)
+    --rigidbody(60, 96, 8, 0, 0.5, 0.5, nil, 10)
 	init_bullets(256)
-	add(enemies, spawn_bat())
+	add(enemies, spawn_spider())
 	spawn_player()
 end
 
@@ -26,6 +26,7 @@ function _draw()
 	end
 	draw_bullets()
 	print(player.hp,0,0,7)
+	draw_enemies()
 end
 
 function draw_environment(z)
@@ -42,7 +43,7 @@ end
 --player
 
 function spawn_player()
-	player=rigidbody(64, 64, 2, 0.5, 4, 0.8, nil, 10)
+	player=rigidbody(64, 64, 2, 0.5, 4, 0.4, nil, 10000)
 	player.firerate=0.20
 	player.nextshoot=0
 	player.knockback=0.30
@@ -177,7 +178,7 @@ function shot_gun(dir)
 	for i=1,n do
 		local s = (((rnd()-0.5) * 0.25) + 1) * bspeed
 		s = vector(s,s)
-		bullet_straight(vec_add(player.pos, vec_mul(dir, vector(player.radius,player.radius))), vec_mul(vec_norm(vec_add(dir, vector(((i-n/2)/n)*dir.y,((i-n/2)/n)*dir.x))), s), 7, 0, 12)
+		bullet_straight(vec_add(player.pos, vec_mul(dir, vector(player.radius,player.radius))), vec_mul(vec_norm(vec_add(dir, vector(((i-n/2)/n)*dir.y,((i-n/2)/n)*dir.x))), s), 7, 0, 8)
 	end
 end
 
@@ -187,22 +188,59 @@ end
 enemies = {}
 
 function spawn_bat()
-	local bat= rigidbody(100, 100, 2, 0.5, 4, 0.4, nil, 20)
+	local bat= rigidbody(rnd()*128, 128, 3, 0.5, 4, 0.4, nil, 100)
+	bat.sprites = {0,0,0,1,1,1}
 	bat.flag = 1
+	bat.frame = 0
 	bat.reshoot = time()
-	bat.update = function() 
+	bat.update = function()
+		bat.vel.y = 10*(player.pos.y - bat.pos.y) / abs(bat.pos.y - player.pos.y)
 		if(time() > bat.reshoot) then 
-			bullet_straight(bat.pos, vec_mul(vec_norm(vec_sub(player.pos, bat.pos)), vector(32,32)), 2, 1, 1) 
-			bat.reshoot = time()+1 
+			bullet_straight(bat.pos, vec_mul(vec_norm(vec_sub(player.pos, bat.pos)), vector(32,32)), 8, 1, 1) 
+			bat.reshoot = time()+2
 		end 
+		bat.frame = (bat.frame + 1) % 6
+	end
+	bat.draw = function()
+		spr(bat.sprites[bat.frame+1], bat.pos.x-3, bat.pos.y-4)
 	end
 	return bat
 end
+
+function spawn_spider()
+	local spider= rigidbody(30,30, 7, 0.5, 4, 0.4, nil, 30)
+	spider.sprites = {16,17,32,33}
+	spider.flag = 1
+	spider.reshoot = time()
+	spider.update = function()
+		if(time() > spider.reshoot) then
+		local n = 24
+			for i=1,n do
+				bullet_straight(spider.pos, vec_mul(vector(cos(i/n),sin(i/n)),vector(32,32)), 8, 1, 1)
+			end
+		spider.reshoot = time() + 5
+		end
+	end
+	spider.draw = function ()
+		spr(spider.sprites[flr(rnd(0.51)*2+1)],spider.pos.x-8,spider.pos.y-8)
+		spr(spider.sprites[flr(rnd(0.51)*2+1)],spider.pos.x,spider.pos.y-8, 1, 1, true)
+		spr(spider.sprites[flr(rnd(0.51)*2+3)],spider.pos.x-8,spider.pos.y)
+		spr(spider.sprites[flr(rnd(0.51)*2+3)],spider.pos.x,spider.pos.y, 1, 1, true)
+	end
+	return spider
+end
+
 
 function update_enemies()
 	for i=1,#enemies do
 		enemies[i].update()
 		rb_update(enemies[i])
+	end
+end
+
+function draw_enemies()
+	for e in all(enemies) do
+		e.draw()
 	end
 end
 
