@@ -5,7 +5,7 @@ __lua__
 function _init()
 	physics_start(1/30)
     rigidbody(60, 96, 8, 0, 0.5, 0.5, nil, 10)
-	init_bullets(128)
+	init_bullets(256)
 	spawn_player()
 end
 
@@ -28,33 +28,47 @@ end
 --player
 
 function spawn_player()
-	player=rigidbody(64, 64, 2, 0, 0, 0.4, nil, 10)
+	player=rigidbody(64, 64, 2, 0.5, 4, 0.4, nil, 10)
 	player.firerate=0.20
 	player.nextshoot=0
 	player.knockback=0.30
 	player.flag=0
 	player.shoot=machine_gun
 	player.switch=2
+	player.weapons={
+		shot_gun={
+			func=shot_gun,
+			knockback=-128,
+			firerate=0.25
+		},
+		machine_gun={
+			func=machine_gun,
+			knockback=-32,
+			firerate=0.05
+		}
+	}
+	player.weapon=player.weapons.machine_gun
 end
 
 function update_player()
-	player.acc.y=16
+	player.acc.y=64
 	if time()>player.nextshoot then
 		if btn(0) or btn(1) or btn(2) or btn(3) then
-			local dir = nil
-			if btn(0) 	  then dir = vector(-player.knockback,0)
-			elseif btn(1) then dir = vector(player.knockback,0)
-			elseif btn(2) then dir = vector(0,-player.knockback)
-			elseif btn(3) then dir = vector(0,player.knockback) end
-			local b = player.shoot(dir)
-			player.nextshoot = time() + player.firerate
-			player.vel = vec_add(player.vel, vec_mul(vector(-32,-32), dir))
+			local dir = vector(0,0)
+			if btn(0) 	  then dir = vec_add(dir, vector(-1,0))
+			elseif btn(1) then dir = vec_add(dir, vector(1,0))
+			elseif btn(2) then dir = vec_add(dir, vector(0,-1))
+			elseif btn(3) then dir = vec_add(dir, vector(0,1)) end
+			player.weapon.func(dir)
+			player.nextshoot = time() + player.weapon.firerate
+			dir = vec_mul(dir, vector(player.weapon.knockback, player.weapon.knockback))
+			player.vel = vec_add(player.vel, dir)
 		end
 	end
 	if time()>player.switch and btn(5) then
 		player.firerate=1-player.firerate
 		player.knockback=1-player.knockback
-		player.shoot = (player.shoot==machine_gun) and shot_gun or machine_gun
+		player.weapon = (player.weapon==player.weapons.machine_gun) and player.weapons.shot_gun or player.weapons.machine_gun
 		player.switch = time() + 1
 	end
 end
@@ -135,18 +149,17 @@ function draw_bullets()
 end
 
 function machine_gun(dir)
-	local bspeed=vector(128,128)
-	local b1=bullet_straight(vec_add(player.pos, vector(player.radius*2*dir.y,player.radius*2*dir.x)), vec_mul(dir, bspeed), 7, 0, 3)
-	local b2=bullet_straight(vec_add(player.pos, vector(-player.radius*2*dir.y,-player.radius*2*dir.x)), vec_mul(dir, bspeed), 7, 0, 3)
+	local bspeed=vector(64,64)
+	bullet_straight(vec_add(player.pos, vector(player.radius*2*dir.y,player.radius*2*dir.x)), vec_mul(dir, bspeed), 7, 0, 3)
+	bullet_straight(vec_add(player.pos, vector(-player.radius*2*dir.y,-player.radius*2*dir.x)), vec_mul(dir, bspeed), 7, 0, 3)
 end
 
 function shot_gun(dir)
 	local bspeed=vector(128,128)
-	local b1=bullet_straight(vec_add(player.pos, vec_mul(dir, vector(player.radius,player.radius))), vec_mul(vec_norm(dir), bspeed), 7, 0, 12)
-	local b2=bullet_straight(vec_add(player.pos, vec_mul(dir, vector(player.radius,player.radius))), vec_mul(vec_norm(vec_add(dir, vector(0.66*dir.y,0.66*dir.x))),bspeed), 7, 0, 12)
-	local b3=bullet_straight(vec_add(player.pos, vec_mul(dir, vector(player.radius,player.radius))), vec_mul(vec_norm(vec_add(dir, vector(-0.66*dir.y,-0.66*dir.x))),bspeed), 7, 0, 12)
-	local b4=bullet_straight(vec_add(player.pos, vec_mul(dir, vector(player.radius,player.radius))), vec_mul(vec_norm(vec_add(dir, vector(0.33*dir.y,0.33*dir.x))),bspeed), 7, 0, 12)
-	local b5=bullet_straight(vec_add(player.pos, vec_mul(dir, vector(player.radius,player.radius))), vec_mul(vec_norm(vec_add(dir, vector(-0.33*dir.y,-0.33*dir.x))),bspeed), 7, 0, 12)
+	local n=8
+	for i=1,8 do
+		bullet_straight(vec_add(player.pos, vec_mul(dir, vector(player.radius,player.radius))), vec_mul(vec_norm(vec_add(dir, vector(((i-n/2)/n)*dir.y,((i-n/2)/n)*dir.x))),bspeed), 7, 0, 12)
+	end
 end
 
 -->8
