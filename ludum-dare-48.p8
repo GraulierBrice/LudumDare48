@@ -20,9 +20,6 @@ end
 function _draw()
 	local y=time()
 	draw_environment(y)
-	for i=1,#colliders do
-		--col_draw(colliders[i])
-	end
 	draw_bullets()
 	draw_enemies()
 	draw_player()
@@ -89,7 +86,7 @@ end
 
 function draw_player()
 	local a = atan2(player.vel.x, player.vel.y)
-	local f = (vec_len(player.vel)/8 * time()) % 2
+	local f = (vec_len(player.vel)/4 + time()) % 2
 	if a<0.125 or 0.875<a   then
 		spr(7+f, player.pos.x-4,player.pos.y-4,1,1,true)
 	elseif a<0.375 then
@@ -207,8 +204,8 @@ end
 
 function machine_gun(dir)
 	local bspeed=vector(64,64)
-	bullet_straight(vec_add(player.pos, vector(player.radius*2*dir.y,player.radius*2*dir.x)), vec_mul(dir, bspeed), 7, 0, 30)
-	bullet_straight(vec_add(player.pos, vector(-player.radius*2*dir.y,-player.radius*2*dir.x)), vec_mul(dir, bspeed), 7, 0, 30)
+	bullet_straight(vec_add(player.pos, vector(player.radius*dir.y,player.radius*dir.x)), vec_mul(dir, bspeed), 7, 0, 30)
+	bullet_straight(vec_add(player.pos, vector(-player.radius*dir.y,-player.radius*dir.x)), vec_mul(dir, bspeed), 7, 0, 30)
 end
 
 function shot_gun(dir)
